@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# React Router / Vite build output
+/build/
+/.react-router/
+/dist/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Testing
+/coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
