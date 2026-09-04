@@ -17,8 +17,6 @@ export const ShoppingCard = () => {
     [],
   );
 
-  // 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
-
   useEffect(() => {
     const updatedList = shoppingCardsList.map((item) => ({
       ...item,
