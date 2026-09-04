@@ -26,7 +26,7 @@ export const ShoppingCard = () => {
   }, []);
 
   return (
-    <div className=" l flex flex-wrap gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs">
+    <div className="flex flex-wrap gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs">
       {cardsList.map((card) => {
         return (
           <ShoppingCardItem
