@@ -10,6 +10,11 @@ export const appRoutes: IAppRoutes[] = [
       { path: "", label: "Home", file: "routes/home/index.tsx" },
       { path: "input", label: "Input", file: "routes/input/index.tsx" },
       { path: "shop", label: "Shop", file: "routes/shopping/index.tsx" },
+      {
+        path: "order-book",
+        label: "Order Book",
+        file: "routes/order-book/index.tsx",
+      },
     ],
   },
 ];
