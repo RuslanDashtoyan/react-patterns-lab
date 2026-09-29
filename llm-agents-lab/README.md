@@ -19,7 +19,7 @@ You need **Node.js 20.9 or newer** (`node -v`) and an **Anthropic API key**
 1. **Get the code into WebstormProjects.** The app is the `llm-agents-lab/` folder of this repository:
    ```bash
    cd ~/WebstormProjects
-   git clone -b claude/lucid-pascal-rode04 https://github.com/RuslanDashtoyan/react-patterns-lab.git
+   git clone -b feature/llm-agents-lab https://github.com/RuslanDashtoyan/react-patterns-lab.git
    ```
 2. **Open it in WebStorm:** *File → Open…* and choose `react-patterns-lab/llm-agents-lab` (the folder with this
    README), so WebStorm picks up its `package.json` and ESLint config.
