@@ -1,0 +1,146 @@
+# LLM & Agents Lab
+
+A small Next.js app (JavaScript, App Router) that shows, step by step, how large language models (LLMs), tools and
+agents work. Each lesson is a working page backed by short, commented code that calls Claude through the official
+Anthropic SDK.
+
+| # | Page      | The idea                                                                                    |
+|---|-----------|---------------------------------------------------------------------------------------------|
+| 1 | `/basics` | An LLM is a function: text in → text out                                                    |
+| 2 | `/chat`   | The model remembers nothing: your code sends the whole conversation again, and the reply streams |
+| 3 | `/tools`  | The model can *ask* for a tool, and your code runs it. You click through each step yourself |
+| 4 | `/agent`  | An agent is that same loop, automated                                                       |
+
+## Run it
+
+You need **Node.js 20.9 or newer** (`node -v`) and an **Anthropic API key**
+([how to get one](https://platform.claude.com/docs/en/get-api-key)).
+
+1. **Get the code into WebstormProjects.** The app is the `llm-agents-lab/` folder of this repository:
+   ```bash
+   cd ~/WebstormProjects
+   git clone -b claude/lucid-pascal-rode04 https://github.com/RuslanDashtoyan/react-patterns-lab.git
+   ```
+2. **Open it in WebStorm:** *File → Open…* and choose `react-patterns-lab/llm-agents-lab` (the folder with this
+   README), so WebStorm picks up its `package.json` and ESLint config.
+3. **Install dependencies** in WebStorm's terminal (<kbd>Alt</kbd>+<kbd>F12</kbd>, on macOS <kbd>⌥</kbd>+<kbd>F12</kbd>):
+   ```bash
+   npm install
+   ```
+4. **Add your key.** Copy `.env.example` to `.env.local`, then paste your key after `ANTHROPIC_API_KEY=`:
+   ```bash
+   cp .env.example .env.local    # Windows: copy .env.example .env.local
+   ```
+5. **Start it:** `npm run dev`, then open <http://localhost:3000>. The home page tells you whether the key was
+   found. Restart `npm run dev` after every change to `.env.local`.
+
+| Command                          | What it does                                                   |
+|----------------------------------|----------------------------------------------------------------|
+| `npm run dev`                    | development server, reloads when you save a file               |
+| `npm test`                       | unit tests for the tools and the agent loop (no API key needed) |
+| `npm run lint`                   | ESLint                                                         |
+| `npm run build`, then `npm start` | production build                                               |
+
+**Cost.** Every call is billed to your API key. The app uses Claude Opus 5.5 ($4 per million input tokens, $20 per
+million output tokens, see [pricing](https://platform.claude.com/docs/en/about-claude/pricing)). A run typically costs
+a few cents or less, and every lesson shows its token counts.
+
+## Where the code lives
+
+```text
+llm-agents-lab/
+├── app/                           Next.js App Router: the folder path is the URL
+│   ├── layout.js                  <html>, <body> and the navigation, around every page
+│   ├── page.js                    home page "/"
+│   ├── globals.css                all the styling
+│   ├── basics/ chat/ tools/ agent/   one folder per lesson, each with:
+│   │   ├── page.js                  Server Component: the explanation (rendered on the server)
+│   │   └── *-demo.js                Client Component ("use client"): the interactive part (runs in the browser)
+│   └── api/                       Route Handlers = your backend, server only
+│       ├── basics/route.js        POST /api/basics       one request, one answer
+│       ├── chat/route.js          POST /api/chat         streams the reply
+│       ├── tools/step/route.js    POST /api/tools/step   ask Claude, with tools
+│       ├── tools/run/route.js     POST /api/tools/run    run one tool
+│       └── agent/route.js         POST /api/agent        run the agent loop, stream every step
+├── lib/                           plain JavaScript, no React
+│   ├── llm/config.js              model name + settings every request shares
+│   ├── llm/client.js              the Anthropic SDK client: the ONLY code that reads the API key (server-only)
+│   ├── http/server.js             helpers for route handlers: JSON errors, streaming
+│   ├── http/browser.js            helpers for pages: call our routes, read streams
+│   ├── tools/                     the tools: a definition for the model + a run() function for your code
+│   └── agent/run-agent.js         THE agent loop
+├── components/                    small shared React components
+├── docs/                          the longer explanations
+├── .env.example                   template for .env.local, where your key goes (never committed)
+└── AGENTS.md, CLAUDE.md           instructions for AI coding assistants, generated by Next.js
+```
+
+Three rules decide where code goes:
+
+1. **Anything that needs the API key runs on the server:** in `app/api/**/route.js`, or in `lib/` files that start
+   with `import "server-only"`. If browser code ever imports such a file, the build fails, so the key can't leak by
+   accident.
+2. **Anything with state or clicks is a Client Component** (`"use client"` on the first line). It talks to *your*
+   routes with `fetch("/api/…")`, never to Anthropic.
+3. **Plain logic (the tools, the agent loop) is plain JavaScript in `lib/`.** No React, no Next.js, so `npm test` can
+   test it with Node alone.
+
+## What happens when you press "Send" (lesson 1)
+
+1. **Browser.** `app/basics/basics-demo.js` calls `postJson("/api/basics", { system, prompt, effort })`: a plain
+   `fetch` to your own server.
+2. **Your Next.js server.** It sends `POST /api/basics` to the `POST` function in `app/api/basics/route.js`. That code
+   runs in Node.js on your machine, not in the browser.
+3. **SDK client.** `getAnthropic()` in `lib/llm/client.js` creates the client once. `new Anthropic()` reads
+   `ANTHROPIC_API_KEY`, which Next.js loaded from `.env.local`.
+4. **HTTPS to Anthropic.** `client.beta.messages.create({...})` sends `POST https://api.anthropic.com/v1/messages` with
+   your key in the `x-api-key` header and a JSON body: model, max_tokens, system, messages.
+5. **Claude.** It thinks first (effort decides how much), then writes the answer token by token until it is done
+   (`stop_reason: "end_turn"`) or reaches `max_tokens`.
+6. **Back to you.** The SDK turns the JSON response into an object: `content` (a list of blocks), `stop_reason`,
+   `usage`. The route hands it to the browser with `Response.json(...)`.
+7. **On screen.** The page shows the text, the token counts, and the raw request and response.
+
+Lessons 2–4 take the same path. Only the middle changes: stream the reply (2), add tools (3), or loop (4).
+
+## The agent loop in one picture
+
+```text
+ task
+  │
+  ▼
+ messages ──▶ Claude ──▶ reply ──▶ stop_reason === "tool_use" ?
+  ▲                                   │ yes                  │ no
+  │                                   ▼                      ▼
+  └──── append reply + results ◀── run the tools          final answer
+                                   (your code)
+```
+
+The code is in [`lib/agent/run-agent.js`](lib/agent/run-agent.js): about 40 lines of logic.
+
+## The docs, in order
+
+1. [What an LLM is, and one API call](docs/1-llm-basics.md)
+2. [Chat: memory is an array, and replies stream](docs/2-chat-and-streaming.md)
+3. [Tools: the model asks, your code acts](docs/3-tools.md)
+4. [Agents: the tool loop, automated](docs/4-agents.md)
+5. [Where the code lives in a Next.js app](docs/5-where-code-lives.md)
+
+## Ideas to try next
+
+- **Add a tool.** Copy `lib/tools/calculator.js`, change the definition and `run()`, and add it to `TOOLS` in
+  `lib/tools/index.js`. Lessons 3 and 4 pick it up automatically.
+- **Change the behaviour with words.** Edit the system prompt in `lib/agent/run-agent.js`, e.g. "End every answer with a
+  one-line summary", and run the agent again.
+- **Break things on purpose.** Set `maxSteps` to 1, or give a tool a vague description, and watch what the agent does.
+- **Let the SDK run the loop.** Once the manual loop makes sense, see "Beyond this project" in
+  [docs/4-agents.md](docs/4-agents.md).
+
+## Learn more
+
+- [Working with the Messages API](https://platform.claude.com/docs/en/build-with-claude/working-with-messages)
+- [Tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) ·
+  [Streaming](https://platform.claude.com/docs/en/build-with-claude/streaming) ·
+  [Effort](https://platform.claude.com/docs/en/build-with-claude/effort)
+- [Models](https://platform.claude.com/docs/en/models/overview)
+- [Next.js docs](https://nextjs.org/docs), also included offline in `node_modules/next/dist/docs/`
